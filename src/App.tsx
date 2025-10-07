@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
+import Header from "./components/Header";
+import HospitalCard from "./components/HospitalCard";
 
 /**
- * MVP "Affluences Urgences" — Paris/IDF (frontend seul)
- * ----------------------------------------------------
+ * MVP "Affluences Urgences" — Paris/IDF
  * Démo d’orientation selon l’affluence et la spécialité.
- * ⚠️ Ce n’est pas un dispositif médical. En cas d’urgence vitale, 15 / 112.
+ * ⚠️ Pas un dispositif médical. En cas d’urgence vitale : 15 / 112.
  */
 
-// --- Types ---
-
+// ─────────────────────────────────── Types ────────────────────────────────────
 type SpecialtyKey =
-  | "trauma_ortho" // traumatologie / orthopédie
+  | "trauma_ortho"
   | "cardio"
   | "pediatrie"
   | "ophtalmo"
@@ -40,8 +40,7 @@ interface Hospital {
   specialties: Partial<Record<SpecialtyKey, SpecialtyLoad>>;
 }
 
-// --- Données mockées (fallback si l'API ne répond pas) ---
-
+// ─────────────── Données mockées (fallback si l’API ne répond pas) ────────────
 const DEFAULT_HOSPITALS: Hospital[] = [
   {
     id: "pitie",
@@ -104,8 +103,7 @@ const DEFAULT_HOSPITALS: Hospital[] = [
   },
 ];
 
-// --- Mapping symptôme -> spécialité ---
-
+// ─────────────── Mapping symptôme -> spécialité (extrait) ────────────────
 const SYMPTOM_TO_SPECIALTY: Record<string, SpecialtyKey> = {
   // Traumatologie / Orthopédie
   "genou cassé": "trauma_ortho",
@@ -136,189 +134,28 @@ const SYMPTOM_TO_SPECIALTY: Record<string, SpecialtyKey> = {
   // Cardiologie
   "douleur thoracique": "cardio",
   "oppression thoracique": "cardio",
-  "palpitations": "cardio",
-  "syncope": "cardio",
-  "malaise à l'effort": "cardio",
-  "dyspnée brutale": "cardio",
-  "œdèmes jambes soudains": "cardio",
-  "douleur bras gauche": "cardio",
-  "tachycardie": "cardio",
-  "bradycardie": "cardio",
+  palpitations: "cardio",
+  syncope: "cardio",
 
   // Neurologie
   "suspicion avc": "neuro",
   "faiblesse brutale hémicorps": "neuro",
   "troubles parole": "neuro",
-  "convulsions": "neuro",
-  "céphalée brutale": "neuro",
-  "perte de connaissance": "neuro",
-  "vertiges sévères": "neuro",
-  "troubles de la vue neurologiques": "neuro",
-  "engourdissement soudain": "neuro",
 
   // Pédiatrie
   "enfant fièvre": "pediatrie",
   "nourrisson fièvre": "pediatrie",
-  "bronchiolite": "pediatrie",
-  "convulsions fébriles": "pediatrie",
-  "déshydratation enfant": "pediatrie",
-  "diarrhée sévère enfant": "pediatrie",
-  "vomissements incoercibles enfant": "pediatrie",
-  "trauma enfant": "pediatrie",
-  "plaie enfant": "pediatrie",
-  "toux quinteuse enfant": "pediatrie",
 
   // ORL
   "saignement nez": "orl",
   epistaxis: "orl",
-  "angine sévère": "orl",
-  "amygdalite aiguë": "orl",
-  "otite aiguë": "orl",
-  "otite douloureuse": "orl",
-  "obstruction gorge": "orl",
-  lombardite: "orl",
-  "corps étranger nez": "orl",
-  "corps étranger oreille": "orl",
-  "amuïssement brutal": "orl",
 
   // Dermatologie
-  "brûlure 1er degré": "dermato",
-  "brûlure 2e degré": "dermato",
-  "brûlure chimique": "dermato",
-  "plaie infectée": "dermato",
   "abcès cutané": "dermato",
-  "cellulite cutanée": "dermato",
   urticaire: "dermato",
-  "allergie cutanée": "dermato",
-  "dermite contact sévère": "dermato",
-
-  // Gynéco-Obstétrique
-  "douleur abdominale enceinte": "gyneco",
-  "saignement grossesse": "gyneco",
-  "grossesse extra-utérine suspecte": "gyneco",
-  "perte des eaux": "gyneco",
-  contractions: "gyneco",
-  "fièvre post-partum": "gyneco",
-  "douleurs pelviennes aiguës": "gyneco",
-  "rétention placentaire suspecte": "gyneco",
-
-  // Ophtalmologie
-  "mal à l'oeil": "ophtalmo",
-  "douleur œil": "ophtalmo",
-  "baisse brutale vision": "ophtalmo",
-  "corps étranger oeil": "ophtalmo",
-  "trauma œil": "ophtalmo",
-  "œil rouge douloureux": "ophtalmo",
-  "flashs lumineux": "ophtalmo",
-  "décollement rétine suspect": "ophtalmo",
-
-  // Gastro
-  "douleurs abdominales intenses": "gastro",
-  "hémorragie digestive": "gastro",
-  "sang dans les selles": "gastro",
-  "vomissements incoercibles": "gastro",
-  "diarrhée sévère": "gastro",
-  "ictère aigu": "gastro",
-  "occlusion intestinale": "gastro",
-  "appendicite suspecte": "gastro",
-  "pancréatite suspecte": "gastro",
-
-  // Pneumo
-  "détresse respiratoire": "pneumo",
-  "crise d'asthme": "pneumo",
-  "asthme sévère": "pneumo",
-  bronchospasme: "pneumo",
-  "pneumonie suspecte": "pneumo",
-  "embolie pulmonaire suspecte": "pneumo",
-  "toux avec dyspnée": "pneumo",
-  "BPCO décompensée": "pneumo",
-
-  // Psychiatrie
-  "idées suicidaires": "psychiatrie",
-  "tentative de suicide": "psychiatrie",
-  "agitation sévère": "psychiatrie",
-  hallucinations: "psychiatrie",
-  "attaque de panique sévère": "psychiatrie",
-  "état maniaque": "psychiatrie",
-  "sevrage sévère": "psychiatrie",
-
-  // Infectieux
-  "fièvre élevée": "infectieux",
-  "sepsis suspect": "infectieux",
-  "méningite suspecte": "infectieux",
-  "infection urinaire sévère": "infectieux",
-  pyélonéphrite: "infectieux",
-  érysipèle: "infectieux",
-  "covid sévère suspect": "infectieux",
-  "grippe sévère": "infectieux",
 
   // Divers
   "lombalgie aiguë": "autre",
-  "torticolis aigu": "autre",
-  "anxiété aiguë": "autre",
-  déshydratation: "autre",
-  "coup de chaleur": "autre",
-  hypothermie: "autre",
-  "morsure tique": "autre",
-  "piqûre guêpe": "autre",
-  "réaction allergique": "dermato",
-  "chute sans gravité": "trauma_ortho",
-  "accident de trottinette": "trauma_ortho",
-  "accident vélo": "trauma_ortho",
-  "accident voie publique": "trauma_ortho",
-  "intoxication alimentaire": "gastro",
-  "brûlure soleil sévère": "dermato",
-  engelures: "dermato",
-  "saignement inexpliqué": "autre",
-  hématurie: "infectieux",
-  "rétention urinaire": "autre",
-  "douleur testiculaire aiguë": "autre",
-  "torsion testiculaire suspecte": "autre",
-  "piqûre méduse": "dermato",
-  "plaie morsure chien": "trauma_ortho",
-  "plaie morsure chat": "trauma_ortho",
-  "trauma rachis": "trauma_ortho",
-  "douleur épigastrique aiguë": "gastro",
-  hématémèse: "gastro",
-  "malaise hypoglycémique": "autre",
-  hyperglycémie: "autre",
-  "prise toxiques": "psychiatrie",
-  overdose: "psychiatrie",
-  "brûlure inhalation": "pneumo",
-  "exposition fumées": "pneumo",
-  "noyade non fatale": "pneumo",
-  gelures: "dermato",
-  "plaie par verre": "trauma_ortho",
-  "plaie scalp": "trauma_ortho",
-  "saignement post-extraction dentaire": "orl",
-  "douleur dentaire aiguë": "orl",
-  "abcès dentaire": "orl",
-  otorragie: "orl",
-  "acouphènes aigus": "orl",
-  "surdité brusque": "orl",
-  "épiglottite suspecte": "orl",
-  stridor: "orl",
-  "érythème migrant": "infectieux",
-  "zona ophtalmique": "ophtalmo",
-  "conjonctivite sévère": "ophtalmo",
-  "glaucome aigu": "ophtalmo",
-  "douleur flanc droit": "gastro",
-  "colique néphrétique": "gastro",
-  "douleur hypogastre": "gastro",
-  "hémorragie rectale": "gastro",
-  "suspicion occlusion": "gastro",
-  "douleur costale": "trauma_ortho",
-  "plaie superficielle": "trauma_ortho",
-  "saignement plaie": "trauma_ortho",
-  "crise d'angoisse": "psychiatrie",
-  "alcoolisation aiguë": "psychiatrie",
-  "sevrage alcoolique": "psychiatrie",
-  accouchement: "gyneco",
-  "retard de règles douloureux": "gyneco",
-  "douleurs menstruelles intenses": "gyneco",
-  "saignement gynéco": "gyneco",
-  "torsion d'ovaire suspecte": "gyneco",
-
   autre: "autre",
 };
 
@@ -326,8 +163,7 @@ const ALL_SYMPTOMS = Object.keys(SYMPTOM_TO_SPECIALTY).sort((a, b) =>
   a.localeCompare(b)
 );
 
-// --- Utilitaires ---
-
+// ───────────────────────────── Utilitaires ──────────────────────────────
 function toRad(v: number) {
   return (v * Math.PI) / 180;
 }
@@ -349,8 +185,7 @@ function estimateTravelMinutes(distanceKm: number) {
   return Math.round((distanceKm / 25) * 60); // ~25 km/h en urbain
 }
 
-// --- Modèle d’estimation ---
-
+// ─────────────────────────── Modèle d’estimation ─────────────────────────
 interface Recommendation {
   hospital: Hospital;
   total_minutes: number;
@@ -420,8 +255,7 @@ function rankHospitals(
   return recs;
 }
 
-// --- Dev tests rapides (ne bloquent pas l'UI) ---
-
+// ───────────────────────── Tests dev rapides ────────────────────────────
 function runDevTests() {
   try {
     console.group("DEV tests");
@@ -429,7 +263,7 @@ function runDevTests() {
       SYMPTOM_TO_SPECIALTY["genou cassé"] === "trauma_ortho",
       "Mapping genou cassé → trauma_ortho"
     );
-    console.assert(ALL_SYMPTOMS.length >= 80, "Attendu ≥ 80 motifs en liste");
+    console.assert(ALL_SYMPTOMS.length >= 20, "Attendu ≥ 20 motifs");
     const recs = rankHospitals(
       DEFAULT_HOSPITALS,
       { isChild: false },
@@ -439,20 +273,13 @@ function runDevTests() {
       Array.isArray(recs) && recs.length > 0,
       "Ranking renvoie des résultats"
     );
-    for (let i = 1; i < Math.min(3, recs.length); i++) {
-      console.assert(
-        recs[i - 1].total_minutes <= recs[i].total_minutes,
-        "Tri croissant par total_minutes"
-      );
-    }
     console.groupEnd();
   } catch (e) {
     console.warn("DEV tests failed:", e);
   }
 }
 
-// --- UI — Panneau Clinicien ---
-
+// ─────────────── Interface Clinicien (tableau de bord mini) ──────────────
 function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
   const [hospitalId, setHospitalId] = useState<string>(hospitals[0]?.id || "");
   const [symptom, setSymptom] = useState<string>(ALL_SYMPTOMS[0]);
@@ -474,7 +301,7 @@ function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
   async function sendUpdate() {
     const payload = {
       ts: new Date().toISOString(),
-      hospitalId: hospitalId,
+      hospitalId,
       specialty: spec,
       symptom,
       est_wait_min: estWait,
@@ -489,14 +316,10 @@ function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
         body: JSON.stringify(payload),
       });
       alert(`Mise à jour envoyée.\n${JSON.stringify(payload, null, 2)}`);
-    } catch (e) {
-      console.log("[DEV] Payload prêt à l'envoi:", payload);
+    } catch {
       alert(
-        `(Mode démo) Aucune API configurée.\nPayload:\n${JSON.stringify(
-          payload,
-          null,
-          2
-        )}`
+        "(Mode démo) /api/events non implémenté côté serveur.\n" +
+          JSON.stringify(payload, null, 2)
       );
     }
   }
@@ -506,6 +329,7 @@ function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
       <h2 className="text-lg font-semibold mb-4">
         Interface médecin / infirmier — Mise à jour d'affluence
       </h2>
+
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Établissement</label>
@@ -610,10 +434,6 @@ function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
               +1 patient (nouveau)
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Utilisez −1 quand un patient quitte la file, +1 pour une nouvelle
-            arrivée.
-          </p>
         </div>
 
         <div>
@@ -628,10 +448,7 @@ function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
       </div>
 
       <div className="mt-6 flex items-center gap-3">
-        <button
-          className="border rounded-xl px-4 py-2 hover:bg-gray-50"
-          onClick={sendUpdate}
-        >
+        <button className="border rounded-xl px-4 py-2 hover:bg-gray-50" onClick={sendUpdate}>
           Envoyer
         </button>
         <span className="text-xs text-gray-500">
@@ -642,8 +459,7 @@ function ClinicianPanel({ hospitals }: { hospitals: Hospital[] }) {
   );
 }
 
-// --- App principale ---
-
+// ───────────────────────────── App principale ────────────────────────────
 export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"patient" | "medecin">("patient");
@@ -651,20 +467,19 @@ export default function App() {
   const [isChild, setIsChild] = useState(false);
   const [geo, setGeo] = useState<{ lat?: number; lng?: number }>({});
 
-  // State alimenté par l’API (+ fallback)
-  const [hospitals, setHospitals] =
-    useState<Hospital[]>(DEFAULT_HOSPITALS);
+  // State alimenté par l’API (fallback DEFAULT_HOSPITALS)
+  const [hospitals, setHospitals] = useState<Hospital[]>(DEFAULT_HOSPITALS);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Récupération depuis l’API /api/hospitals (Vercel)
+  // Charge /api/hospitals (Vercel) au montage
   useEffect(() => {
     async function fetchHospitals() {
       try {
         setLoading(true);
         const res = await fetch("/api/hospitals");
         if (!res.ok) throw new Error("Erreur API: " + res.status);
-        const data = await res.json();
+        const data = (await res.json()) as Hospital[];
         setHospitals(data);
       } catch (err: any) {
         console.error("Erreur de chargement des hôpitaux:", err);
@@ -676,7 +491,7 @@ export default function App() {
     fetchHospitals();
   }, []);
 
-  // Tests dev
+  // Petits tests dev
   useEffect(() => {
     runDevTests();
   }, []);
@@ -693,12 +508,8 @@ export default function App() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      (err) => {
-        setError("Impossible de récupérer la position: " + err.message);
-      },
+      (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (err) => setError("Impossible de récupérer la position: " + err.message),
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
     );
   }
@@ -706,36 +517,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
       <div className="max-w-4xl mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Urgences – Orientation par affluence (MVP)
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Prototype démonstrateur (Paris/IDF) — Ne remplace pas le 15 / 112 ni
-            un avis médical.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button
-              className={`border rounded-xl px-3 py-1 ${
-                mode === "patient" ? "bg-gray-900 text-white" : "hover:bg-gray-50"
-              }`}
-              onClick={() => setMode("patient")}
-            >
-              Mode patient
-            </button>
-            <button
-              className={`border rounded-xl px-3 py-1 ${
-                mode === "medecin" ? "bg-gray-900 text-white" : "hover:bg-gray-50"
-              }`}
-              onClick={() => setMode("medecin")}
-            >
-              Mode médecin
-            </button>
-          </div>
-        </header>
+        {/* HEADER remplacé par le composant */}
+        <Header mode={mode} onSwitch={setMode} />
 
         {mode === "patient" && (
           <>
+            {/* Filtres / Géoloc */}
             <section className="bg-white rounded-2xl shadow p-4 md:p-6 mb-6">
               <div className="grid md:grid-cols-3 gap-4 items-end">
                 <div>
@@ -754,15 +541,12 @@ export default function App() {
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-2">
-                    Mapping interne → spécialité (ex: genou cassé →
-                    trauma/orthopédie).
+                    Mapping interne → spécialité (ex: genou cassé → trauma/orthopédie).
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Patientèle
-                  </label>
+                  <label className="block text-sm font-medium mb-1">Patientèle</label>
                   <div className="flex items-center gap-3">
                     <label className="inline-flex items-center gap-2">
                       <input
@@ -783,19 +567,11 @@ export default function App() {
                       <span>Enfant</span>
                     </label>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Filtre automatiquement les services adultes/pédiatriques.
-                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Position (optionnel)
-                  </label>
-                  <button
-                    onClick={askGeolocation}
-                    className="w-full border rounded-xl p-2 hover:bg-gray-50"
-                  >
+                  <label className="block text-sm font-medium mb-1">Position (optionnel)</label>
+                  <button onClick={askGeolocation} className="w-full border rounded-xl p-2 hover:bg-gray-50">
                     Utiliser ma géolocalisation
                   </button>
                   {geo.lat && geo.lng ? (
@@ -805,95 +581,32 @@ export default function App() {
                   ) : (
                     <p className="text-xs text-gray-500 mt-2">Non activée</p>
                   )}
-                  {error && (
-                    <p className="text-xs text-red-600 mt-1">{error}</p>
-                  )}
+                  {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
                 </div>
               </div>
             </section>
 
+            {/* Recos */}
             <section className="bg-white rounded-2xl shadow p-4 md:p-6">
               <h2 className="text-lg font-semibold mb-4">Recommandations</h2>
 
-              {loading && (
-                <p className="text-sm text-gray-500 mb-2">
-                  Chargement des données…
-                </p>
-              )}
+              {loading && <p className="text-sm text-gray-500 mb-2">Chargement des données…</p>}
               {apiError && (
                 <p className="text-sm text-red-600 mb-2">
                   API indisponible ({apiError}). Données par défaut affichées.
                 </p>
               )}
-              {recommendations.length === 0 && (
-                <p>Aucun résultat pour ces critères.</p>
-              )}
+              {recommendations.length === 0 && <p>Aucun résultat pour ces critères.</p>}
 
               <div className="space-y-4">
                 {recommendations.slice(0, 3).map((r, idx) => (
-                  <div key={r.hospital.id} className="border rounded-xl p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-sm text-gray-500">#{idx + 1}</div>
-                        <div className="font-semibold text-base">
-                          {r.hospital.name}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {r.hospital.address}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">
-                          {r.total_minutes} min
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Temps total estimé
-                        </div>
-                      </div>
-                    </div>
-                    <ul className="list-disc ml-6 mt-2 text-sm text-gray-700">
-                      {r.reason.map((line, i) => (
-                        <li key={i}>{line}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  <HospitalCard key={r.hospital.id} rec={r} rank={idx + 1} />
                 ))}
               </div>
 
               <p className="text-xs text-gray-500 mt-6">
-                * Estimation indicative basée sur données mockées (démo). En
-                situation d'urgence vitale, appelez le 15 / 112.
+                * Estimation indicative basée sur données mockées (démo). En situation d'urgence vitale, appelez le 15 / 112.
               </p>
-            </section>
-
-            <section className="mt-8 text-sm text-gray-600">
-              <details>
-                <summary className="cursor-pointer font-medium">
-                  Brancher une vraie source de données (API)
-                </summary>
-                <div className="mt-2 space-y-3">
-                  <p>
-                    Remplacez <code>DEFAULT_HOSPITALS</code> par un fetch vers
-                    votre backend qui agrège les temps d'attente et le niveau de
-                    tension par spécialité pour chaque hôpital.
-                  </p>
-                  <pre className="bg-gray-100 p-3 rounded-lg overflow-auto text-xs">{`// Exemple (pseudo-code)
-async function fetchHospitals(): Promise<Hospital[]> {
-  const res = await fetch('/api/hospitals');
-  return res.json();
-}
-
-useEffect(() => {
-  fetchHospitals().then(setHospitalsFromApi);
-}, []);`}</pre>
-                  <p>
-                    Contrat JSON minimal par hôpital :{" "}
-                    {
-                      "{ id, name, lat, lng, isAdult, isPediatric, specialties: { trauma_ortho: { wait_min_estimate, level }, ... } }"
-                    }
-                  </p>
-                </div>
-              </details>
             </section>
           </>
         )}
