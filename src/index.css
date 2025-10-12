@@ -1,54 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* Tailwind v4 — charge les utilitaires et référence-les pour @apply */
+@import "tailwindcss";
+@reference "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Optionnel : police */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
-/* ---------- Variables globales ---------- */
 :root {
   color-scheme: light;
   --bg-grad: radial-gradient(1200px 600px at 20% -10%, rgba(47,121,255,0.08), transparent 60%),
              radial-gradient(1000px 500px at 110% 10%, rgba(47,121,255,0.06), transparent 60%);
 }
 
-/* ---------- Structure globale ---------- */
 html, body, #root {
   height: 100%;
 }
 
 body {
+  /* Ces utilitaires viennent de Tailwind → autorisés grâce à @reference */
   @apply bg-gray-50 text-gray-900;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   background-image: var(--bg-grad);
   background-attachment: fixed;
 }
 
-/* ---------- Composants ---------- */
-
-/* Carte blanche avec ombre douce */
+/* Petites classes utilitaires globales (optionnelles) */
 .card {
-  @apply bg-white rounded-2xl shadow-lg border border-gray-100;
+  @apply bg-white rounded-2xl shadow border border-gray-100;
 }
 
-/* Boutons */
 .btn {
   @apply inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition;
 }
-
 .btn-primary {
   @apply bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800;
 }
-
 .btn-ghost {
   @apply border border-gray-200 hover:bg-gray-50;
 }
 
-/* Badges */
 .badge {
-  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-700;
-}
-
-/* Ajout petit effet sur hover pour tout bouton */
-button {
-  transition: all 0.2s ease-in-out;
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
 }
